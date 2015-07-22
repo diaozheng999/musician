@@ -6,3 +6,4 @@ Group is
       note.sml
       scale.sig
       scale.sml
+      main.sml

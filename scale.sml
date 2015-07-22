@@ -1,9 +1,17 @@
 structure Scale :> SCALE
                    where type note = Note.note
+                   where type 'a task = 'a Athena.Core.Task.task
+                   where type 'a seq = 'a Athena.Data.Seq.seq
   =
   struct
 
-  open Athena.Core.TopLevel
+
+  type 'a task = 'a Athena.Core.Task.task
+  type 'a seq = 'a Athena.Core.Seq.seq
+
+  open Athena
+  open Athena.Core.Task
+  open Athena.Data
 
   type note = Note.note
   type scale = Note.note * note vector
@@ -20,7 +28,7 @@ structure Scale :> SCALE
       let val vec = Vector.fromList v
           val semitones = Note.semitones (Vector.sub(vec,0),Note.midC)
       in (Note.normalise (Vector.sub(vec,0)),
-          Vector.map (fn n => Note.transpose (n, ~semitones)) v)
+          Vector.map (fn n => Note.transpose (n, ~semitones)) vec)
       end
 
   fun key (x,_) = Note.notation x
