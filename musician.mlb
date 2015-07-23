@@ -1,0 +1,8 @@
+$(SML_LIB)/basis/basis.mlb
+$(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+../athena/athena.mlb
+note.sig
+note.sml
+scale.sig
+scale.sml
+main.sml

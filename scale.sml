@@ -7,51 +7,67 @@ structure Scale :> SCALE
 
 
   type 'a task = 'a Athena.Core.Task.task
-  type 'a seq = 'a Athena.Core.Seq.seq
+  type 'a seq = 'a Athena.Data.Seq.seq
 
   open Athena
   open Athena.Core.Task
   open Athena.Data
+  infix <| <|| await
+  infixr |> ||>
 
   type note = Note.note
-  type scale = Note.note * note vector
+  type scale = Note.note * note seq
 
   exception Empty
   exception Tonic
 
   val key = car
 
-  fun tonic (_,v) = Vector.length v
+  fun tonic (_,v) = Seq.length v
 
-  fun construct [] = raise Empty
-    | construct v =
-      let val vec = Vector.fromList v
-          val semitones = Note.semitones (Vector.sub(vec,0),Note.midC)
-      in (Note.normalise (Vector.sub(vec,0)),
-          Vector.map (fn n => Note.transpose (n, ~semitones)) vec)
-      end
+  fun construct nseq =
+      select {cond = Seq.null nseq,
+	      true = raise Empty,
+	      false = 
+	      (Seq.nth 0 
+		       |> fst (Note.semitones, Note.midC)
+		       |> 
+		       (fn st =>
+			   join ((Seq.nth 0 |> Note.normalise) nseq,
+				 Seq.map (fst (Note.transpose, ~st))
+					 nseq))) nseq}
+				 	      
 
   fun key (x,_) = Note.notation x
 
   fun transpose ((k,l),semitones) =
-      (Note.normalise(Note.transpose(k, semitones)), l)
+      join ((fst (Note.transpose, semitones) 
+		  |> Note.normalise) k,
+	    yield l)
 
-  fun toScale intl = Vector.map Note.fromInt (Vector.fromList intl)
+  val toScale = Seq.map Note.fromInt <| Seq.fromList
 
-  fun major note = (Note.normalise note,toScale [0,2,4,5,7,9,11])
-  fun minor note = (Note.normalise note,toScale [0,2,3,5,7,8,10])
+  fun major note = join (Note.normalise note, toScale [0,2,4,5,7,9,11])
 
-  fun chromatic note = (Note.normalise note,
-                        toScale [0,1,2,3,4,5,6,7,8,9,10,11])
+  fun minor note = join (Note.normalise note, toScale [0,2,3,5,7,8,10])
+
+  fun chromatic note =
+      join (Note.normalise note,
+	    toScale [0,1,2,3,4,5,6,7,8,9,10,11])
+  
+
+  
 
   fun toString (k,s) =
-      Vector.foldl (fn (a,"") => a
-                     | (a,b) => a^"-"^b)
-                   ""
-                   (Vector.map (fn n =>
-                                   Note.toNotString (
-                                   Note.transpose
-                                            (n, Note.semitones(k, Note.midC))))
-                               s)
+      Note.semitones 
+	  (k, Note.midC) await
+	  (fn sem =>
+	      Seq.mapreduce1
+		  (fst (Note.transpose, sem) |> Note.toNotString)
+		  (fn (a,"") => yield a
+		  | (a,b) => yield (a^"-"^b))
+		  s)
+		      
+
 
   end
